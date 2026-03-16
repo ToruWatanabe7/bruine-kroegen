@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>bruinekroegen.nl</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1E1208;--bg2:#2C1F0E;--bg3:#3A2810;--border:#4A3520;--gold:#C8961E;--gold-lt:#F5DEB3;--gold-dim:#8B6914;--text:#E8D5A3;--text2:#B09070;--text3:#7A6040;--r:10px}
+html,body{height:100%;font-family:'Georgia',serif;background:var(--bg);color:var(--text);overflow:hidden}
+header{background:var(--bg2);border-bottom:0.5px solid var(--border);padding:0 14px;display:flex;align-items:center;justify-content:space-between;height:50px;flex-shrink:0}
+.logo-main{font-size:15px;font-weight:700;color:var(--gold-lt)}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:0.06em;margin-top:1px}
+.hdr-r{display:flex;align-items:center;gap:6px}
+#cnt{font-size:11px;color:var(--text3);font-family:sans-serif}
+.hdr-btn{font-size:11px;padding:5px 9px;border-radius:20px;border:0.5px solid var(--gold-dim);background:transparent;color:var(--gold);cursor:pointer;font-family:sans-serif;white-space:nowrap}
+.hdr-btn:hover{background:var(--gold-dim);color:var(--gold-lt)}
+.lang-btn{font-size:11px;padding:5px 8px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;font-family:sans-serif}
+.lang-btn.active{background:var(--bg3);color:var(--gold-lt);border-color:var(--gold-dim)}
+#wrap{display:flex;flex-direction:column;height:100vh}
+#main{display:flex;flex:1;overflow:hidden;position:relative}
+#sidebar{width:305px;min-width:305px;display:flex;flex-direction:column;background:var(--bg2);border-right:0.5px solid var(--border);height:100%}
+#map{flex:1;z-index:0}
+#filters{padding:7px 11px;display:flex;flex-wrap:wrap;gap:4px;border-bottom:0.5px solid var(--border)}
+.fb{font-size:11px;padding:3px 8px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;font-family:sans-serif;transition:all 0.12s}
+.fb[data-f="no-tourists"].active{background:#1E0A2E;color:#C4B5FD;border-color:#5B21B6}
+.fb[data-f="historic"].active{background:#2E1E00;color:#FDE047;border-color:#854D0E}
+.fb[data-f="jenever"].active{background:#2E1E00;color:#FCD34D;border-color:#8B6914}
+.fb[data-f="terrace"].active{background:#0A2010;color:#6EE7B7;border-color:#065F46}
+.fb[data-f="night"].active{background:#0A0A1E;color:#A5B4FC;border-color:#4338CA}
+.fb[data-f="ajax"].active{background:#6B0000;color:#FCA5A5;border-color:#991B1B}
+.fb[data-f="music"].active{background:#1E0A2E;color:#F9A8D4;border-color:#9D174D}
+.fb[data-f="loved"].active{background:#3D0A0A;color:#FCA5A5;border-color:#e05555}
+.tag.music{background:#1E0A2E;color:#F9A8D4;border:0.5px solid #9D174D}
+.tag.loved{background:#3D0A0A;color:#FCA5A5;border:0.5px solid #e05555}
+#sb{padding:6px 11px;border-bottom:0.5px solid var(--border)}
+#sb input{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:6px 9px;font-size:12px;color:var(--text);font-family:sans-serif;outline:none}
+#sb input:focus{border-color:var(--gold-dim)}
+#sb input::placeholder{color:var(--text3)}
+#list{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.ki{padding:10px 13px;border-bottom:0.5px solid var(--border);cursor:pointer;transition:background 0.1s;border-left:2px solid transparent}
+.ki:hover{background:var(--bg3)}
+.ki.sel{background:#3D2910;border-left-color:var(--gold)}
+.ki-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.ki-name{font-size:13px;font-weight:700;color:var(--gold-lt)}
+.ki-right{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.ki-est{font-size:10px;color:var(--text3);background:var(--bg);padding:2px 5px;border-radius:8px;white-space:nowrap;font-family:sans-serif}
+.ki-heart{cursor:pointer;font-size:14px;line-height:1;user-select:none;color:var(--text3)}
+.ki-heart.loved{color:#e05555}
+.ki-hood{font-size:11px;color:var(--text3);margin-top:2px;font-family:sans-serif}
+.ki-vibe{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.4;font-family:sans-serif}
+.ki-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.tag{font-size:10px;padding:2px 6px;border-radius:10px;font-family:sans-serif}
+.tag.jenever{background:#2E1E00;color:#FCD34D;border:0.5px solid #8B6914}
+.tag.terrace{background:#0A2010;color:#6EE7B7;border:0.5px solid #065F46}
+.tag.historic{background:#2E1E00;color:#FDE047;border:0.5px solid #854D0E}
+.tag.award{background:#1E0818;color:#F9A8D4;border:0.5px solid #9D174D}
+.tag.night{background:#0A0A1E;color:#A5B4FC;border:0.5px solid #4338CA}
+.tag.ajax{background:#5C0000;color:#FCA5A5;border:0.5px solid #991B1B}
+.tag.no-tourists{background:#1E0A2E;color:#C4B5FD;border:0.5px solid #5B21B6}
+.no-res{padding:24px 13px;text-align:center;font-size:12px;color:var(--text3);font-family:sans-serif}
+#det{position:absolute;bottom:0;right:0;width:calc(100% - 305px);background:var(--bg2);border-top:1px solid var(--border);padding:12px 16px 14px;transform:translateY(100%);transition:transform 0.2s ease;z-index:1000;max-height:55%;overflow-y:auto}
+#det.open{transform:translateY(0)}
+#det-x{position:absolute;top:10px;right:13px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:17px;font-family:sans-serif}
+#det-x:hover{color:var(--gold-lt)}
+#det-name{font-size:16px;font-weight:700;color:var(--gold-lt)}
+#det-meta{font-size:11px;color:var(--text3);margin-top:3px;font-family:sans-serif}
+#det-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+#det-body{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.db{background:var(--bg);border-radius:var(--r);padding:8px 11px;border:0.5px solid var(--border)}
+.db.wide{grid-column:1/-1}
+.dlbl{font-size:10px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px;font-family:sans-serif}
+.dval{font-size:12px;color:var(--text2);line-height:1.5;font-family:sans-serif}
+.fb-btn{width:100%;margin-top:8px;padding:7px;border-radius:var(--r);border:0.5px solid var(--gold-dim);background:transparent;color:var(--gold);cursor:pointer;font-family:sans-serif;font-size:12px;text-align:left}
+.fb-btn:hover{background:var(--bg3)}
+.fb-form{margin-top:8px;display:none}
+.fb-form.open{display:block}
+.fb-form input,.fb-form textarea{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:6px 9px;font-size:12px;color:var(--text);font-family:sans-serif;outline:none;margin-bottom:6px;resize:vertical}
+.fb-form input:focus,.fb-form textarea:focus{border-color:var(--gold-dim)}
+.fb-form textarea{min-height:70px}
+.fb-send{width:100%;padding:7px;border-radius:var(--r);border:none;background:var(--gold-dim);color:var(--gold-lt);cursor:pointer;font-family:sans-serif;font-size:12px}
+.fb-send:hover{background:var(--gold)}
+.fb-ok{font-size:12px;color:#6EE7B7;font-family:sans-serif;margin-top:6px;display:none}
+#crawl-modal{display:none;position:fixed;inset:0;background:rgba(10,6,2,0.87);z-index:2000;align-items:center;justify-content:center}
+#crawl-modal.open{display:flex}
+#cbox{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:18px 20px;max-width:440px;width:90%;max-height:82vh;overflow-y:auto}
+#cbox h3{font-size:14px;color:var(--gold-lt);margin-bottom:3px}
+#cbox p{font-size:12px;color:var(--text3);font-family:sans-serif;margin-bottom:12px}
+#c-hood{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:6px 8px;font-size:12px;color:var(--text);font-family:sans-serif;margin-bottom:11px;outline:none}
+.cstop{display:flex;gap:10px;align-items:flex-start;margin-bottom:11px}
+.cnum{width:21px;height:21px;border-radius:50%;background:var(--gold-dim);color:var(--gold-lt);font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:sans-serif}
+.cnum.loved-num{background:#8B1A1A}
+.cinfo .cname{font-size:13px;font-weight:700;color:var(--gold-lt)}
+.cinfo .cdesc{font-size:11px;color:var(--text2);font-family:sans-serif;margin-top:2px}
+.chr{border:none;border-top:0.5px solid var(--border);margin:0 0 11px 31px}
+#crawl-close{margin-top:4px;width:100%;padding:7px;border-radius:var(--r);border:0.5px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:sans-serif;font-size:12px}
+.kpin{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;border:2px solid #1A0E04;font-size:11px;cursor:pointer;transition:transform 0.15s;font-family:sans-serif;line-height:1}
+.kpin:hover{transform:scale(1.2)}
+.kpin.sel{border-color:var(--gold-lt);transform:scale(1.3)}
+@media(max-width:640px){
+  html,body{overflow:hidden}
+  #wrap{height:100dvh}
+  .logo-sub{display:none}
+  #cnt{display:none}
+  .hdr-btn{font-size:10px;padding:4px 8px}
+  #main{flex-direction:column}
+  #map{flex:none;height:45dvh;width:100%}
+  #sidebar{width:100%;min-width:unset;height:55dvh;border-right:none;border-top:0.5px solid var(--border);flex-direction:column}
+  #filters{padding:6px 10px;gap:4px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  #filters::-webkit-scrollbar{display:none}
+  .fb{white-space:nowrap;flex-shrink:0;font-size:11px}
+  #sb{padding:5px 10px}
+  #det{width:100%;left:0;right:0;max-height:70dvh;border-radius:14px 14px 0 0}
+  #det-body{grid-template-columns:1fr}
+  .db.wide{grid-column:1}
+  .ki{padding:11px 13px}
+  .ki-vibe{display:none}
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <div>
+      <div class="logo-main">bruinekroegen.nl</div>
+      <div class="logo-sub" id="hdr-sub">Amsterdams authentieke bruine cafés</div>
+    </div>
+    <div class="hdr-r">
+      <button class="lang-btn active" onclick="setLang('nl')">NL</button>
+      <button class="lang-btn" onclick="setLang('en')">EN</button>
+      <span id="cnt"></span>
+      <button class="hdr-btn" id="crawl-btn" onclick="openCrawl()">Kroegentocht</button>
+    </div>
+  </header>
+  <div id="main">
+    <div id="sidebar">
+      <div id="filters">
+        <button class="fb" data-f="historic" id="f-historic">Historisch</button>
+        <button class="fb" data-f="jenever" id="f-jenever">Jenever</button>
+        <button class="fb" data-f="terrace" id="f-terrace">Terras</button>
+        <button class="fb" data-f="night" id="f-night">Nachtcafé</button>
+        <button class="fb" data-f="ajax" id="f-ajax">Ajax</button>
+        <button class="fb" data-f="music" id="f-music">Muziek</button>
+        <button class="fb" data-f="no-tourists" id="f-locals">Geen toeristen</button>
+        <button class="fb" data-f="loved" id="f-loved">♥ Lievelingen</button>
+      </div>
+      <div id="sb"><input type="text" id="search" oninput="doSearch(this.value)"></div>
+      <div id="list"></div>
+    </div>
+    <div id="map"></div>
+    <div id="det">
+      <button id="det-x" onclick="closeDet()">✕</button>
+      <div id="det-name"></div>
+      <div id="det-meta"></div>
+      <div id="det-tags"></div>
+      <div id="det-body"></div>
+    </div>
+  </div>
+</div>
+<div id="crawl-modal">
+  <div id="cbox">
+    <h3 id="crawl-title">Plan een kroegentocht</h3>
+    <p id="crawl-desc">Kies een buurt en we stippelen de perfecte avond voor je uit.</p>
+    <select id="c-hood"></select>
+    <div id="cstops"></div>
+    <button id="crawl-close" onclick="closeCrawl()">Sluiten</button>
+  </div>
+</div>
+<script>
+const FORMSPREE_ID='xlgppkeg';
+
+const K=[
+  {id:62,name:"Café Oporto",year:1889,hood:"Centrum",addr:"Zoutsteeg 1",lat:52.3741,lng:4.8939,
+   vibe:{nl:"Bruine kroeg in een steegje naast de Damrak since 1889. Neonboog uit 1922 boven de bar. Interieur met Art Nouveau dierriemtekens door architect Gerrit van Arkel.",en:"Brown café in an alley off the Damrak since 1889. Neon arch from 1922 above the bar. Interior with Art Nouveau zodiac signs by architect Gerrit van Arkel."},
+   tip:{nl:"Vermeld in Authentieke Amsterdamse bruine kroegen (2025). Neonverlichting dateert uit 1922.",en:"Featured in Authentieke Amsterdamse bruine kroegen (2025). Neon lighting dates from 1922."},
+   hours:"Ma–do 11:00–1:00 · Vr–za 11:00–3:00 · Zo 11:00–1:00",tags:["historic"],sunny:false},
+  {id:63,name:"The Old Nickel",year:1900,hood:"Centrum",addr:"Nieuwebrugsteeg 11",lat:52.3763,lng:4.8996,
+   vibe:{nl:"Bruine kroeg die ook dienst doet als receptie van een klein hotel. Houtsnijwerk van het 17e-eeuwse schip de Kapitein van admiraal Michiel de Ruyter. 70+ bieren.",en:"Brown café doubling as hotel reception. Wood carvings from the 17th-century ship the Kapitein of Admiral Michiel de Ruyter. 70+ beers."},
+   tip:{nl:"Vermeld in Authentieke Amsterdamse bruine kroegen (2025): je zit er tussen verdwaalde toeristen met enorme koffers, maar het is toch echt een bruine kroeg.",en:"Featured in Authentieke Amsterdamse bruine kroegen (2025): you sit among lost tourists with enormous suitcases, but it really is a genuine brown café."},
+   hours:"Dagelijks 11:00–1:00",tags:["historic"],sunny:false},
+  {id:51,name:"De Drie Fleschjes",year:1619,hood:"Centrum",addr:"Gravenstraat 18",lat:52.3743,lng:4.8923,
+   vibe:{nl:"Officieel de oudste kroeg van Amsterdam (historicus Maarten Hell, 2023). Proeflokaal achter de Nieuwe Kerk. Enige nog werkende drankorgel in Amsterdam: 50 vaten. Zand op de vloer.",en:"Officially Amsterdam's oldest bar (historian Maarten Hell, 2023). Tasting house behind the Nieuwe Kerk. The only still-functioning drinks organ in Amsterdam: 50 barrels. Sand on the floor."},
+   tip:{nl:"Het bankje achterin heet de doodsbank: acht stamgasten stierven er na elkaar.",en:"The bench at the back is the death bench: eight regulars died there in succession."},
+   hours:"Ma–za 14:00–20:30 · Zo 15:00–19:00",tags:["jenever","historic"],sunny:false},
+  {id:52,name:"Café Karpershoek",year:1641,hood:"Centrum",addr:"Martelaarsgracht 2",lat:52.3781,lng:4.8968,
+   vibe:{nl:"Tegenover Centraal Station. Vroegste vermelding als herberg De Oldenburger Kelder in 1641. Zand op de vloer, tegels aan de muren, geen muziek.",en:"Opposite Centraal Station. Earliest record as inn De Oldenburger Kelder in 1641. Sand on the floor, tiles on the walls, no music."},
+   tip:{nl:"Aan de Martelaarsgracht — criminelen werden hier vroeger terechtgesteld.",en:"On the Martelaarsgracht — criminals were once executed here."},
+   hours:"Ma–do 7:30–1:00 · Vr–za 7:30–2:00 · Zo 7:30–1:00",tags:["jenever","historic"],sunny:false},
+  {id:1,name:"Café 't Smalle",year:1780,hood:"Jordaan",addr:"Egelantiersgracht 12",lat:52.3767,lng:4.8841,
+   vibe:{nl:"Voormalige jeneverbrouwerij van Pieter Hoppe (1780). Authentiek drankorgel.",en:"Former jenever distillery of Pieter Hoppe (1780). Authentic drankorgel."},
+   tip:{nl:"Terras op de noordoever van de Egelantiersgracht. In de zon tot circa 17:00 in de zomer.",en:"Terrace on the north bank of the Egelantiersgracht. In sun until around 5pm in summer."},
+   hours:"Ma–do 10:00–1:00 · Vr–za 10:00–2:00 · Zo 10:00–1:00",tags:["jenever","historic","terrace"],sunny:true,sunHours:"11:00–17:00"},
+  {id:2,name:"Café Papeneiland",year:1642,hood:"Jordaan",addr:"Prinsengracht 2",lat:52.3672,lng:4.8821,
+   vibe:{nl:"Rijksmonument op de hoek Prinsengracht/Brouwersgracht. Delfts blauwe tegels en een gedocumenteerde vluchtgang naar de katholieke schuilkerk.",en:"Listed monument at Prinsengracht/Brouwersgracht corner. Delft tiles and a documented escape tunnel to the Catholic hidden church."},
+   tip:{nl:"Bill Clinton bezocht het café in mei 2011 speciaal voor de appeltaart.",en:"Bill Clinton visited in May 2011 specifically for the apple pie."},
+   hours:"Ma–do 10:00–1:00 · Vr–za 10:00–2:00 · Zo 10:00–1:00",tags:["jenever","historic","terrace"],sunny:true,sunHours:"10:00–14:00"},
+  {id:3,name:"Café Hegeraad",year:1915,hood:"Jordaan",addr:"Noordermarkt 34",lat:52.3794,lng:4.8861,
+   vibe:{nl:"Hoekpand aan de Noordermarkt tegenover de Noorderkerk. Donker hout, oosterse tapijten, penduleklok.",en:"Corner building on the Noordermarkt opposite the Noorderkerk. Dark wood, oriental carpets, grandfather clock."},
+   tip:{nl:"Appeltaart geldt als een van de beste van de Jordaan.",en:"Apple pie rated among the best in the Jordaan."},
+   hours:"Ma–do 8:00–1:00 · Vr–za 8:00–3:00 · Zo 8:00–1:00",tags:["historic","terrace"],sunny:true,sunHours:"12:00–16:00"},
+  {id:4,name:"Café Nol",year:1952,hood:"Jordaan",addr:"Westerstraat 109",lat:52.3782,lng:4.8835,
+   vibe:{nl:"Overdag gewone bruine kroeg. Avonds meezingcafé met neonverlichting, rode gordijnen en kroonluchters.",en:"By day an ordinary brown café. In the evening a sing-along bar with neon lighting, red curtains and chandeliers."},
+   tip:{nl:"Vrijdag- en zaterdagavond Jordaans smartlappen. Open tot 4:00.",en:"Friday and Saturday evenings: Jordaan folk songs. Open until 4am."},
+   hours:"Dagelijks 20:00–4:00",tags:["no-tourists"],sunny:false,nightCafe:true,musicCafe:true},
+  {id:5,name:"Café de Reiger",year:1887,hood:"Jordaan",addr:"Nieuwe Leliestraat 34",lat:52.3757,lng:4.8826,
+   vibe:{nl:"Eetcafé in de Jordaan since 1887. Geen reserveringen.",en:"Eatery in the Jordaan since 1887. No reservations."},
+   tip:{nl:"Stamppot is de populairste keuze op zondaglunch.",en:"Stamppot is the most popular choice at Sunday lunch."},
+   hours:"Ma–do 11:00–1:00 · Vr–za 11:00–2:00 · Zo 11:00–1:00",tags:["no-tourists","historic"],sunny:false},
+  {id:6,name:"De Twee Zwaantjes",year:1928,hood:"Jordaan",addr:"Prinsengracht 114",lat:52.3764,lng:4.8842,
+   vibe:{nl:"Klein café aan de Prinsengracht. Wekelijkse vaste accordeongroep van zes muzikanten.",en:"Small café on the Prinsengracht. A weekly regular accordion group of six musicians."},
+   tip:{nl:"Muziek op vrijdag- en zaterdagavond. Gasten mogen meezingen.",en:"Music on Friday and Saturday evenings. Guests are welcome to join in singing."},
+   hours:"Ma–do 16:00–1:00 · Vr–zo 16:00–3:00",tags:["no-tourists","historic"],sunny:false,musicCafe:true},
+  {id:7,name:"Café Gollem",year:1974,hood:"Jordaan",addr:"Raamsteeg 4",lat:52.3703,lng:4.8887,
+   vibe:{nl:"Eerste speciaalbierbar van Amsterdam (1974). 200+ bieren.",en:"Amsterdam's first craft beer bar (1974). 200+ beers."},
+   tip:{nl:"Geen muziek, geen sport. Vraag naar de cask-bieren van de week.",en:"No music, no sports. Ask about that week's cask beers."},
+   hours:"Ma–do 12:00–1:00 · Vr–za 12:00–2:00 · Zo 12:00–1:00",tags:["no-tourists"],sunny:false},
+  {id:8,name:"Café de Tuin",year:1975,hood:"Jordaan",addr:"Tweede Tuindwarsstraat 13",lat:52.3772,lng:4.8819,
+   vibe:{nl:"Geen muziek, geen tv. Vaste Jordaanese buurtbewoners als stamgasten.",en:"No music, no TV. Long-standing Jordaan residents as regulars."},
+   tip:{nl:"Doordeweekse middag is het rustigst.",en:"Weekday afternoons are quietest."},
+   hours:"Dagelijks 10:00–1:00",tags:["jenever","no-tourists"],sunny:false},
+  {id:9,name:"Café de Vergulde Gaper",year:1929,hood:"Jordaan",addr:"Prinsengracht 30",lat:52.3814,lng:4.8889,
+   vibe:{nl:"Groot zuidgericht terras aan de Prinsengracht. In gebruik als kroeg since 1929.",en:"Large south-facing terrace on the Prinsengracht. In use as a bar since 1929."},
+   tip:{nl:"Terras kijkt naar het zuiden — zon van ochtend tot laat in de middag.",en:"Terrace faces south — sun from morning through late afternoon."},
+   hours:"Dagelijks 11:00–1:00",tags:["terrace"],sunny:true,sunHours:"11:00–18:00"},
+  {id:11,name:"De Pilsener Club",year:1893,hood:"Centrum",addr:"Begijnensteeg 4",award:"Parool 2023",lat:52.3695,lng:4.8909,
+   vibe:{nl:"Bekend als De Engelse Reet. Verkozen tot beste bruine kroeg van Amsterdam (Parool 2023). Enige Amsterdamse kroeg zonder bar.",en:"Known as De Engelse Reet. Voted best bruine kroeg in Amsterdam (Parool 2023). The only Amsterdam bar without a bar counter."},
+   tip:{nl:"Zand op de vloer, vier generaties familie Van Veen.",en:"Sand on the floor, four generations of the Van Veen family."},
+   hours:"Ma–do 12:00–1:00 · Vr–za 12:00–2:00 · Zo gesloten",tags:["historic","no-tourists"],sunny:false},
+  {id:12,name:"Café Hoppe",year:1670,hood:"Centrum",addr:"Spui 18",lat:52.3688,lng:4.8886,
+   vibe:{nl:"Sta-hoppe (staand) en zit-hoppe (zittend). Hoogste bieromzet per m² van Amsterdam.",en:"Sta-hoppe (standing) and zit-hoppe (seated). Highest beer turnover per m² in Amsterdam."},
+   tip:{nl:"Koningin Beatrix en Freddy Heineken waren vaste bezoekers.",en:"Queen Beatrix and Freddy Heineken were both regular visitors."},
+   hours:"Ma–do 8:00–1:00 · Vr–za 8:00–2:00 · Zo 9:00–1:00",tags:["jenever","historic","terrace"],sunny:true,sunHours:"12:00–16:00"},
+  {id:13,name:"In de Wildeman",year:1690,hood:"Centrum",addr:"Kolksteeg 3",lat:52.3762,lng:4.8955,
+   vibe:{nl:"17e-eeuwse voormalige destilleerderij. 250+ bieren. Geen muziek.",en:"17th-century former distillery. 250+ beers. No music."},
+   tip:{nl:"Geen muziek, geen tv, geen gokautomaten.",en:"No music, no TV, no slot machines."},
+   hours:"Ma–do 12:00–0:00 · Vr–za 12:00–1:00 · Zo 14:00–0:00",tags:["jenever","historic","no-tourists"],sunny:false},
+  {id:14,name:"Proeflokaal Wynand Fockink",year:1679,hood:"Centrum",addr:"Pijlsteeg 31",lat:52.3723,lng:4.8953,
+   vibe:{nl:"Jeneverproeflokaal in een steeg achter de Dam (1679). Originele vaten aan de muren.",en:"Jenever tasting house in an alley behind Dam Square (1679). Original barrels line the walls."},
+   tip:{nl:"Glazen tot de rand gevuld — eerste slok staand voorovergebogen zonder het glas aan te raken.",en:"Glasses filled to the brim — first sip taken leaning forward without touching the glass."},
+   hours:"Dagelijks 14:00–21:00",tags:["jenever","historic"],sunny:false},
+  {id:15,name:"Café de Wetering",year:1880,hood:"Centrum",addr:"Weteringstraat 37",lat:52.3612,lng:4.8889,
+   vibe:{nl:"Hoekcafé in het Spiegelkwartier. Open haard, leren fauteuils, kroegkat Fidel.",en:"Corner café in the Spiegelkwartier. Fireplace, leather armchairs, house cat Fidel."},
+   tip:{nl:"Ontmoetingsplek voor antiquairs uit het Spiegelkwartier.",en:"Meeting spot for antique dealers from the Spiegelkwartier."},
+   hours:"Ma–do 15:00–1:00 · Vr–za 15:00–2:00 · Zo 15:00–1:00",tags:["no-tourists","historic"],sunny:false},
+  {id:16,name:"Café de Dokter",year:1706,hood:"Centrum",addr:"Rozenboomsteeg 4",lat:52.3693,lng:4.8908,
+   vibe:{nl:"Al meer dan 100 jaar in handen van de familie Beers — zeven generaties. Kleinste bar van Amsterdam: ca. 20 personen.",en:"In the Beers family for over 100 years — seven generations. Amsterdam's smallest bar: around 20 people."},
+   tip:{nl:"Alleen in het weekend open. Jazz draait altijd op de achtergrond.",en:"Open weekends only. Jazz always playing in the background."},
+   hours:"Alleen vr–za 16:00–1:00",tags:["jenever","historic","no-tourists"],sunny:false,musicCafe:true},
+  {id:17,name:"De Sluyswacht",year:1695,hood:"Centrum",addr:"Jodenbreestraat 1",lat:52.3699,lng:4.9017,
+   vibe:{nl:"Voormalige sluiswachterswoning naast het huis van Rembrandt (1695). Rijksmonument. Het pand helt zichtbaar.",en:"Former lock-keeper's house next to Rembrandt's home (1695). Listed national monument. The building visibly leans."},
+   tip:{nl:"Terrassen aan voor- en achterkant vangen zon op verschillende tijden.",en:"Terraces front and back catch sun at different times of day."},
+   hours:"Ma–do 11:30–1:00 · Vr–za 11:30–3:00 · Zo 11:30–1:00",tags:["historic","terrace"],sunny:true,sunHours:"13:00–18:00"},
+  {id:18,name:"Café de Druif",year:1863,hood:"Centrum",addr:"Rapenburgerplein 83",lat:52.3701,lng:4.9106,
+   vibe:{nl:"Voormalige VOC-matrozenkroeg. Geen muziek, vaten langs de wanden, terras aan het water. Top 100 bars Europa (2024).",en:"Former VOC sailors' bar. No music, barrels lining the walls, terrace on the water. Top 100 bars in Europe (2024)."},
+   tip:{nl:"Vier jonge eigenaren namen het café over en hebben het zoveel mogelijk in ere gehouden.",en:"Four young owners took over and kept it as unchanged as possible."},
+   hours:"Ma–do 15:00–1:00 · Vr–za 15:00–2:00 · Zo 15:00–22:00",tags:["jenever","historic","no-tourists","terrace"],sunny:true,sunHours:"14:00–18:00"},
+  {id:19,name:"De Engelbewaarder",year:1977,hood:"Centrum",addr:"Kloveniersburgwal 59",lat:52.3702,lng:4.8985,
+   vibe:{nl:"Bruine kroeg aan de Kloveniersburgwal. Live jazz op zondagmiddag.",en:"Brown café on the Kloveniersburgwal. Live jazz on Sunday afternoons."},
+   tip:{nl:"Elke zondagmiddag live jazz.",en:"Live jazz every Sunday afternoon."},
+   hours:"Ma–do 12:00–1:00 · Vr–za 12:00–2:00 · Zo 12:00–1:00",tags:["no-tourists"],sunny:false,musicCafe:true},
+  {id:20,name:"Café In 't Aepjen",year:1544,hood:"Centrum",addr:"Zeedijk 1",lat:52.3763,lng:4.9001,
+   vibe:{nl:"Het pand stamt uit 1544, één van de twee overgebleven houten huizen van Amsterdam. Klassieke borrelhappen aan de bar.",en:"The building dates from 1544, one of Amsterdam's two remaining wooden houses. Classic bar snacks."},
+   tip:{nl:"Leverworst, Amsterdams zuur en hardgekookt ei op de bar.",en:"Leverworst, Amsterdams zuur and hard-boiled egg at the bar."},
+   hours:"Dagelijks 15:00–1:00",tags:["jenever","historic"],sunny:false},
+  {id:21,name:"Café Oosterling",year:1877,hood:"Centrum",addr:"Utrechtsestraat 140",lat:52.3611,lng:4.8993,
+   vibe:{nl:"Pand uit 1735, vroeger VOC-eigendom. Familie Oosterling kocht het in 1877: slijterij én café — beide nog steeds actief.",en:"Building from 1735, formerly VOC-owned. Bought in 1877: liquor store and café — both still operating."},
+   tip:{nl:"Grote antieke vaten, granieten vloer, houten bar.",en:"Large antique barrels, granite floor, wooden bar."},
+   hours:"Ma–za 12:00–22:00 · Zo gesloten",tags:["jenever","historic"],sunny:false},
+  {id:22,name:"De Doffer",year:1975,hood:"Centrum",addr:"Runstraat 12",lat:52.3690,lng:4.8837,
+   vibe:{nl:"Bruine kroeg in de Negen Straatjes. Open tot 3:00 in het weekend.",en:"Brown café in the Nine Streets. Open until 3am at weekends."},
+   tip:{nl:"Populair als laatste stop op een kroegentocht door de Negen Straatjes.",en:"Popular as a last stop on a bar crawl through the Nine Streets."},
+   hours:"Ma–do 10:00–1:00 · Vr–za 10:00–3:00 · Zo 12:00–1:00",tags:["no-tourists"],sunny:false,nightCafe:true},
+  {id:23,name:"Café Brandon",year:1626,hood:"Centrum",addr:"Keizersgracht 157",lat:52.3754,lng:4.8864,
+   vibe:{nl:"Geopend 1626. Open haard, uitstekende wijnkaart — zeldzaam voor een bruine kroeg. Alleen cash.",en:"Opened 1626. Fireplace, notable wine list — rare for a bruine kroeg. Cash only."},
+   tip:{nl:"Op vrijdag staat de stoep vol.",en:"On Fridays the pavement outside fills with people."},
+   hours:"Ma–do 16:00–1:00 · Vr–za 16:00–3:00 · Zo 16:00–1:00",tags:["jenever","historic"],sunny:false,nightCafe:true},
+  {id:24,name:"De Buurvrouw",year:1980,hood:"Centrum",addr:"Sint Pieterspoortsteeg 29",lat:52.3714,lng:4.8945,
+   vibe:{nl:"Nachtcafé vlakbij de Dam. Open tot 3:00 doordeweeks, 4:00 in het weekend.",en:"Night café near Dam Square. Open until 3am weekdays, 4am weekends."},
+   tip:{nl:"Vult zich nadat andere kroegen sluiten.",en:"Fills up after other bars close."},
+   hours:"Di–do, zo 20:00–3:00 · Vr–za 20:00–4:00",tags:[],sunny:false,nightCafe:true},
+  {id:25,name:"Bloemenbar",year:1995,hood:"Centrum",addr:"Handboogstraat 17",lat:52.3680,lng:4.8903,
+   vibe:{nl:"Nachtcafé nabij het Spui. Open tot 4:00 doordeweeks, 5:00 in het weekend.",en:"Night café near the Spui. Open until 4am weekdays, 5am weekends."},
+   tip:{nl:"Vult zich na middernacht.",en:"Fills up after midnight when surrounding bars close."},
+   hours:"Dagelijks 21:00–4:00 · Vr–za 21:00–5:00",tags:[],sunny:false,nightCafe:true},
+  {id:26,name:"P96",year:1990,hood:"Centrum",addr:"Prinsengracht 96",lat:52.3771,lng:4.8849,
+   vibe:{nl:"Nachtcafé aan de Prinsengracht. Klein en intiem, open tot 3:00 bijna elke avond.",en:"Night café on the Prinsengracht. Small and intimate, open until 3am most nights."},
+   tip:{nl:"Geen club — gewoon open laat aan de gracht.",en:"Not a club — just open late on the canal."},
+   hours:"Zo–vr 22:00–3:00 · Za 22:00–4:00",tags:["terrace"],sunny:false,nightCafe:true},
+  {id:53,name:"Café Chris",year:1882,hood:"Centrum",addr:"Bloemstraat 42",lat:52.3743,lng:4.8816,
+   vibe:{nl:"Werkelijk geopend in 1882. Twee ingangen. Geen wifi, geen Salmari.",en:"Actually opened in 1882. Two entrances. No wifi, no Salmari."},
+   tip:{nl:"Nieuwe eigenaar handhaaft de regels strikt: alleen klassieke jenever.",en:"New owner strictly maintains the rules: classic jenever only."},
+   hours:"Ma–do 15:00–1:00 · Vr–za 15:00–2:00 · Zo 15:00–1:00",tags:["jenever","historic","no-tourists"],sunny:false},
+  {id:54,name:"Café de Koningshut",year:1955,hood:"Centrum",addr:"Spuistraat 269",lat:52.3700,lng:4.8891,
+   vibe:{nl:"Bruine kroeg aan de Spuistraat since 1955. 12 tapbieren, jenevers van Van Wees, bitterballen.",en:"Brown café on the Spuistraat since 1955. 12 beers on tap, Van Wees jenevers, bitterballen."},
+   tip:{nl:"Reserveren mogelijk.",en:"Reservations possible."},
+   hours:"Ma 16:00–23:30 · Di–do 16:00–1:00 · Vr 16:00–3:00 · Za 12:00–3:00 · Zo 12:00–0:00",tags:[],sunny:false,ajaxCafe:true},
+  {id:55,name:"Café de Zeemeeuw",year:1992,hood:"Centrum",addr:"Zeedijk 102",lat:52.3740,lng:4.9002,
+   vibe:{nl:"Buurtcafé op de Zeedijk. Muren vol voetbalshirts en bierviltjes. Alleen contant.",en:"Neighbourhood bar on the Zeedijk. Walls covered in football shirts and beer mats. Cash only."},
+   tip:{nl:"F-side leden kijken hier liever dan in de Arena.",en:"F-side members prefer watching here to the Arena."},
+   hours:"Ma–do 10:00–1:00 · Vr–za 10:00–3:00 · Zo 10:00–1:00",tags:["no-tourists"],sunny:false,ajaxCafe:true},
+  {id:27,name:"Eddy Bar",year:1975,hood:"De Pijp",addr:"Gerard Doustraat 58",lat:52.3554,lng:4.8908,
+   vibe:{nl:"Stamkroeg van André Hazes. Foto's van hem overal. Biljart en dartborden.",en:"André Hazes' regular bar. His photos everywhere. Billiards and dartboards."},
+   tip:{nl:"Op 4 september (sterfdag) en 4 juni (verjaardag) stromen de bar en straat vol met fans.",en:"On 4 September (death) and 4 June (birthday) the bar and street fill with fans."},
+   hours:"Ma–do 15:00–1:00 · Vr–za 15:00–2:00 · Zo 15:00–1:00",tags:["no-tourists"],sunny:false},
+
+  {id:29,name:"Café Mazzeltof",year:1995,hood:"De Pijp",addr:"Ferdinand Bolstraat 40",lat:52.3561,lng:4.8904,
+   vibe:{nl:"Bruin nachtcafé. Eigenaar Sabahattin Öztürk runt het al 25 jaar persoonlijk.",en:"Brown night café. Owner Sabahattin Öztürk has run it himself for 25 years."},
+   tip:{nl:"Vult zich nadat omliggende cafés sluiten. Open tot 4:00 op vr–za.",en:"Fills up when surrounding bars close. Open until 4am Fri–Sat."},
+   hours:"Di–do, zo 20:00–3:00 · Vr–za 20:00–4:00",tags:["no-tourists"],sunny:false,nightCafe:true},
+  {id:30,name:"Café van Wou",year:1930,hood:"De Pijp",addr:"Van Woustraat 25",lat:52.3567,lng:4.9000,
+   vibe:{nl:"Hoekpand Van Woustraat/Ceintuurbaan. Biljart, tapijt op de tafels, onveranderd buurtcafé.",en:"Corner building Van Woustraat/Ceintuurbaan. Billiards, carpets on the tables, unchanged neighbourhood bar."},
+   tip:{nl:"Marktlui van de Albert Cuyp zijn vaste klanten.",en:"Albert Cuyp market traders are regulars."},
+   hours:"Ma–zo 15:00–1:00",tags:["no-tourists"],sunny:false},
+  {id:31,name:"Café de Plakhoek",year:1970,hood:"De Pijp",addr:"Cornelis Trooststraat 68",lat:52.3506,lng:4.8899,
+   vibe:{nl:"Klassieke buurtcafé in de Pijp. Eigen dartteam speelt elke dinsdag.",en:"Classic neighbourhood bar in De Pijp. Own dart team plays every Tuesday."},
+   tip:{nl:"Comedyshows op dinsdag en donderdag.",en:"Comedy shows on Tuesdays and Thursdays."},
+   hours:"Dagelijks 10:00–1:00",tags:["no-tourists"],sunny:false},
+  {id:32,name:"Café Gijs",year:2018,hood:"De Pijp",addr:"Ceintuurbaan 257H",lat:52.3560,lng:4.9044,
+   vibe:{nl:"42 aftapkranen: Nederlands craft, Belgische klassiekers, lambic.",en:"42 taps: Dutch craft, Belgian classics, lambic."},
+   tip:{nl:"Vaste pubquizavond. Vraag naar lambic en mixed-fermentation bieren.",en:"Regular pub quiz night. Ask about lambic and mixed-fermentation beers."},
+   hours:"Ma–do 15:00–1:00 · Vr–za 12:00–2:00 · Zo 12:00–1:00",tags:[],sunny:false},
+  {id:33,name:"Café Hermes",year:1900,hood:"De Pijp",addr:"Ceintuurbaan 55",lat:52.3527,lng:4.8893,
+   vibe:{nl:"Hoekpand in gebruik als horeca since 1900. Biljart, sjoelbak.",en:"Corner building in use as a bar since 1900. Billiards, Dutch shuffleboard."},
+   tip:{nl:"Ajax-wedstrijden worden uitgezonden.",en:"Ajax matches shown on screen."},
+   hours:"Di–do 15:00–1:00 · Vr 14:00–3:00 · Za 12:00–3:00 · Ma gesloten",tags:["historic"],sunny:true,sunHours:"12:00–17:00",ajaxCafe:true},
+  {id:34,name:"Café Binnen Buiten",year:2003,hood:"De Pijp",addr:"Ruysdaelkade 115",lat:52.3548,lng:4.8872,
+   vibe:{nl:"Eetcafé met terras direct aan het Noorder Amstelkanaal.",en:"Eatery with a terrace directly on the Noorder Amstelkanaal."},
+   tip:{nl:"Terras grenst direct aan het water.",en:"Terrace sits directly on the water."},
+   hours:"Ma–do 10:00–1:00 · Vr–za 10:00–3:00 · Zo 10:00–1:00",tags:["terrace"],sunny:true,sunHours:"13:00–18:00"},
+  {id:35,name:"Café Gambrinus",year:1960,hood:"De Pijp",addr:"Ferdinand Bolstraat 180",lat:52.3513,lng:4.8912,
+   vibe:{nl:"Bruine kroeg aan de Ferdinand Bolstraat. Bier op tap en fles, eenvoudig barfood.",en:"Brown café on the Ferdinand Bolstraat. Beer on tap and bottled, simple bar food."},
+   tip:{nl:"Ajax wordt uitgezonden. Rustige zondagmiddag populair.",en:"Ajax shown on screen. Quiet Sunday afternoons popular."},
+   hours:"Ma–do 11:00–1:00 · Vr–za 11:00–3:00 · Zo 11:00–1:00",tags:[],sunny:false,ajaxCafe:true},
+  {id:56,name:"Café Tapmarin",year:1970,hood:"De Pijp",addr:"Van Woustraat 97",lat:52.3542,lng:4.9019,
+   vibe:{nl:"Bruine kroeg op de hoek Van Woustraat/Kuypersstraat. Drie grote Ajax-schermen, danscafé in het weekend.",en:"Brown bar at Van Woustraat/Kuypersstraat. Three large Ajax screens, dance café at weekends."},
+   tip:{nl:"Ook F1 wordt uitgezonden.",en:"F1 also broadcast."},
+   hours:"Dagelijks 16:00–3:00",tags:[],sunny:false,ajaxCafe:true},
+  {id:36,name:"Checkpoint Charlie",year:1994,hood:"West",addr:"Nassaukade 48",lat:52.3822,lng:4.8789,
+   vibe:{nl:"Op de brug aan de Nassaukade. 30+ bieren, uitsluitend Nederlands craft.",en:"On the Nassaukade bridge. 30+ beers, exclusively Dutch craft."},
+   tip:{nl:"Terras op open brug — één van de meest zonnige terrassen van West.",en:"Terrace on an open bridge — one of the sunniest spots in West."},
+   hours:"Ma–do 12:00–1:00 · Vr–za 12:00–3:00 · Zo 12:00–1:00",tags:["no-tourists","terrace"],sunny:true,sunHours:"12:00–19:00"},
+  {id:37,name:"Café de Toog",year:1985,hood:"West",addr:"Nicolaas Beetsstraat 142",lat:52.3622,lng:4.8677,
+   vibe:{nl:"Authentieke bruine kroeg in Oud-West. Vroeger vaste hangplek van Herman Brood.",en:"Authentic brown café in Oud-West. Formerly a regular hangout of Herman Brood."},
+   tip:{nl:"Picknicktafels buiten in de zomer.",en:"Picnic tables outside in summer."},
+   hours:"Ma–do 15:00–1:00 · Vr–za 12:00–2:00 · Zo 14:00–1:00",tags:["no-tourists","terrace"],sunny:true,sunHours:"14:00–18:00"},
+  {id:38,name:"Café Thijssen",year:1990,hood:"West",addr:"Brouwersgracht 107",lat:52.3808,lng:4.8874,
+   vibe:{nl:"Hoekpand aan de Brouwersgracht, vernoemd naar schrijver Theo Thijssen.",en:"Corner building on the Brouwersgracht, named after writer Theo Thijssen."},
+   tip:{nl:"Vaste dinsdagpubquiz — staat bekend als moeilijk.",en:"Regular Tuesday pub quiz — has a reputation for being genuinely hard."},
+   hours:"Ma–do 10:00–1:00 · Vr–za 10:00–2:00 · Zo 11:00–1:00",tags:["no-tourists"],sunny:false},
+  {id:39,name:"Café Het Molenpad",year:1970,hood:"West",addr:"Prinsengracht 653",lat:52.3672,lng:4.8828,
+   vibe:{nl:"Bruine kroeg aan de Prinsengracht met terras aan het water.",en:"Brown café on the Prinsengracht with a waterside terrace."},
+   tip:{nl:"Terras direct aan de Prinsengracht, zonnig in de middag.",en:"Terrace directly on the Prinsengracht, sunny in the afternoon."},
+   hours:"Ma–do 11:00–1:00 · Vr–za 11:00–2:00 · Zo 11:00–1:00",tags:["terrace"],sunny:true,sunHours:"13:00–17:00"},
+  {id:57,name:"Café Oranje",year:1980,hood:"West",addr:"Bilderdijkstraat 216",lat:52.3658,lng:4.8729,
+   vibe:{nl:"Bruine kroeg in Oud-West. Europese Ajaxavonden gevolgd door Hollandse hits.",en:"Brown café in Oud-West. European Ajax evenings followed by Dutch hits after wins."},
+   tip:{nl:"Altijd druk bij Ajax, maar nooit stampvol.",en:"Always busy for Ajax, but never overcrowded."},
+   hours:"Ma–do 15:00–1:00 · Vr–za 15:00–2:00 · Zo 14:00–1:00",tags:["no-tourists"],sunny:false,ajaxCafe:true},
+  {id:58,name:"Café de Poort",year:1970,hood:"West",addr:"Haarlemmerdijk 44",lat:52.3822,lng:4.8882,
+   vibe:{nl:"Bruine kroeg aan de Haarlemmerdijk. Voetbalwedstrijden op groot scherm.",en:"Brown café on the Haarlemmerdijk. Football matches on a large screen."},
+   tip:{nl:"Ajax en ander voetbal. Iedereen welkom.",en:"Ajax and other football. Everyone welcome."},
+   hours:"Ma 8:00–1:00 · Di–do 11:00–1:00 · Vr 8:00–3:00 · Za 11:00–3:00 · Zo 11:00–1:00",tags:[],sunny:false,ajaxCafe:true},
+  {id:59,name:"Blauwhooft",year:1980,hood:"West",addr:"Hendrik Jonkerplein 1",lat:52.3838,lng:4.8889,
+   vibe:{nl:"Bruine kroeg om de hoek van Centraal Station. Voetbal op groot scherm.",en:"Brown café around the corner from Centraal Station. Football on a large screen."},
+   tip:{nl:"Handig als je aankomt of vertrekt via Centraal Station.",en:"Convenient stop if arriving or departing via Centraal Station."},
+   hours:"Dagelijks 11:00–1:00",tags:[],sunny:false,ajaxCafe:true},
+  {id:40,name:"Ruk en Pluk",year:1985,hood:"Oost",addr:"Linnaeusstraat 48",lat:52.3574,lng:4.9267,
+   vibe:{nl:"Kerstverlichting het hele jaar, slingers aan het plafond, tapijt op de tafels, Hollandse hits.",en:"Christmas lights year-round, bunting from the ceiling, carpets on the tables, Dutch hits."},
+   tip:{nl:"Naam stamt van eigenaren Pierre en Hans die sperziebonen plukten.",en:"Name comes from former owners Pierre and Hans picking beans."},
+   hours:"Ma–do 15:00–1:00 · Vr–za 15:00–3:00 · Zo 15:00–1:00",tags:["no-tourists"],sunny:false,musicCafe:true},
+  {id:41,name:"Elsa's Café",year:1890,hood:"Oost",addr:"Middenweg 73",lat:52.3531,lng:4.9319,
+   vibe:{nl:"Café aan de Middenweg since 1890. Vernoemd naar Elsa Maxwell, bekend om haar extravagante feesten.",en:"Café on the Middenweg since 1890. Named after Elsa Maxwell, known for extravagant parties."},
+   tip:{nl:"Elke dinsdagavond live jazz onder leiding van Frans Ronday.",en:"Live jazz every Tuesday evening led by Frans Ronday."},
+   hours:"Ma–do 11:00–1:00 · Vr–za 11:00–2:00 · Zo 13:00–1:00",tags:["historic","terrace"],sunny:true,sunHours:"13:00–18:00",musicCafe:true},
+  {id:42,name:"Café Eik en Linde",year:1895,hood:"Oost",addr:"Plantage Middenlaan 22",lat:52.3665,lng:4.9110,
+   vibe:{nl:"Bruine kroeg in de Plantagebuurt since 1895. Biljart, gemengd publiek.",en:"Brown café in the Plantagebuurt since 1895. Billiards, mixed crowd."},
+   tip:{nl:"De bovenzaal werd gebruikt voor radioopnames van Ischa Meijer.",en:"The upstairs room was used for radio recordings by Ischa Meijer."},
+   hours:"Dagelijks 11:00–1:00",tags:["historic"],sunny:false},
+  {id:43,name:"Café de Amstel",year:1930,hood:"Zuid",addr:"Amstelkade 39",lat:52.3486,lng:4.9031,
+   vibe:{nl:"Onvervalste bruine kroeg op de Amstelkade. Grote halfronde bar, biljart, terras aan het kanaal.",en:"Genuine brown café on the Amstelkade. Large semicircular bar, billiards, canal-side terrace."},
+   tip:{nl:"Eigenaar Arie staat bekend om zijn moppen. Live jazz op maandagavond.",en:"Owner Arie is known for his jokes. Live jazz on Monday evenings."},
+   hours:"Ma–do 14:00–1:00 · Vr–za 14:00–3:00 · Zo 14:00–1:00",tags:["no-tourists","terrace"],sunny:true,sunHours:"14:00–19:00",musicCafe:true},
+  {id:44,name:"Café Juultje",year:1970,hood:"Zuid",addr:"Maasstraat 55",lat:52.3463,lng:4.8967,
+   vibe:{nl:"Klassieke stamkroeg in de Rivierenbuurt. Warm en vertrouwd, met een vaste kern van buurtbewoners die er al jaren over de vloer komen.",en:"A classic neighbourhood stamkroeg in the Rivierenbuurt. Warm and unpretentious, with a loyal crowd of local regulars who have been coming for years."},
+   tip:{nl:"Vroeger bekend als Café Klasen. Maandelijks wisselend bier op de tap — altijd de moeite om naar te vragen.",en:"Formerly known as Café Klasen. A different guest beer on tap each month — always worth asking about."},
+   hours:"Dagelijks 12:00–1:00",tags:["no-tourists","terrace"],sunny:true,sunHours:"12:00–17:00"},
+  {id:64,name:"De Rijncantine",year:1930,hood:"Zuid",addr:"Trompenburgstraat 147",lat:52.3441,lng:4.9019,
+   vibe:{nl:"Eetcafé op de hoek van de Trompenburgstraat en de Hunzestraat, diep in de Rivierenbuurt. Ontstaan in de jaren dertig als koffiehuis voor bouwvakkers van Plan Zuid. Nu een geliefde buurtplek voor jong en oud, met een wisselende dagkaart en live muziek op zondagavond.",en:"Eatery on the corner of Trompenburgstraat and Hunzestraat, deep in the Rivierenbuurt. Started in the 1930s as a coffee house for construction workers of Plan Zuid. Now a beloved neighbourhood spot for all ages, with a changing daily menu and live music on Sunday evenings."},
+   tip:{nl:"Het pand ligt op een scheve lijn in het anders zo rechte stratenplan van Berlage. Live muziek op zondagavond buiten de zomer.",en:"The building sits on a crooked line in Berlage's otherwise grid-straight street plan. Live music on Sunday evenings outside of summer."},
+   hours:"Di–zo 15:00–1:00 · Ma gesloten",tags:["no-tourists","terrace"],sunny:true,sunHours:"14:00–18:00",musicCafe:true},
+  {id:45,name:"Café Welling",year:1906,hood:"Zuid",addr:"Jan Willem Brouwersstraat 32",lat:52.3560,lng:4.8773,
+   vibe:{nl:"Geopend 1906. Inrichting nauwelijks veranderd.",en:"Opened 1906. Interior barely changed."},
+   tip:{nl:"Regelmatige jazzoptredens.",en:"Regular jazz performances."},
+   hours:"Ma–zo 11:00–1:00",tags:["historic","no-tourists"],sunny:false,musicCafe:true},
+  {id:60,name:"Café De Ooievaar",year:1960,hood:"Zuid",addr:"Amstelveenseweg 69",lat:52.3537,lng:4.8561,
+   vibe:{nl:"Bruine kroeg in Oud-Zuid. Perzische kleedjes op de tafels, biljart en klaverjassen. Alle Ajax wedstrijden.",en:"Brown café in Oud-Zuid. Persian carpets on the tables, billiards and cards. All Ajax matches broadcast."},
+   tip:{nl:"De gehaktballen staan bekend als een van de betere in Amsterdam.",en:"The meatballs are considered among the best in Amsterdam."},
+   hours:"Ma–do 11:00–1:00 · Vr–za 11:00–2:00 · Zo 11:00–1:00",tags:["no-tourists"],sunny:false,ajaxCafe:true},
+  {id:46,name:"Café 't Sluisje",year:1904,hood:"Noord",addr:"Nieuwendammerdijk 297",lat:52.3912,lng:4.9382,
+   vibe:{nl:"Bruine kroeg in een pand uit 1565. In 2017 kochten 85 buurtbewoners het café voor €900.000 om het te redden.",en:"Brown café in a 1565 building. In 2017, 85 residents bought the café for €900,000 to save it."},
+   tip:{nl:"Bereikbaar per fiets of per pont. Terras vangt vrijwel de hele dag zon.",en:"Reachable by bike or by ferry. Harbour-side terrace catches sun nearly all day."},
+   hours:"Di–wo 12:00–23:00 · Do 12:00–1:00 · Vr–za 12:00–2:00 · Zo 12:00–23:00 · Ma gesloten",tags:["historic","no-tourists","terrace"],sunny:true,sunHours:"12:00–18:00"},
+  {id:50,name:"Café Pollux",year:2000,hood:"Centrum",addr:"Prins Hendrikkade 121",lat:52.3753,lng:4.9038,
+   vibe:{nl:"Nachtcafé vlakbij Centraal Station. Excentriek interieur, jukebox, livemuziek op woensdag. Eigenaar Frits en zijn vrouw zijn het kleurrijke hart van het café.",en:"Night café near Centraal Station. Eccentric interior, jukebox, live music on Wednesdays. Owner Frits and his wife are the colourful heart of the place."},
+   tip:{nl:"Vernoemd naar een oud ijzeren schip dat hier ooit lag aangemeerd.",en:"Named after an old iron ship once moored here."},
+   hours:"Di–do, zo 12:00–3:00 · Vr–za 12:00–4:00 · Ma gesloten",tags:["terrace"],sunny:true,sunHours:"14:00–19:00",nightCafe:true,musicCafe:true},
+  {id:61,name:"Café Alto",year:1953,hood:"Centrum",addr:"Korte Leidsedwarsstraat 115",lat:52.3635,lng:4.8845,
+   vibe:{nl:"Intiem bruin café bij het Leidseplein, since 1953. Elke avond live jazz.",en:"Intimate brown café near the Leidseplein, since 1953. Live jazz every evening."},
+   tip:{nl:"Één van de langstlopende jazzpodia van Amsterdam. De muziek begint laat.",en:"One of Amsterdam's longest-running jazz venues. Music starts late in the evening."},
+   hours:"Dagelijks 21:00–3:00",tags:["historic"],sunny:false,musicCafe:true},
+  {id:47,name:"Café Van Daele",year:1985,hood:"Centrum",addr:"Paleisstraat 101",lat:52.3724,lng:4.8903,
+   vibe:{nl:"Bruine kroeg schuin achter de Dam. Ajax op groot geprojecteerd scherm boven.",en:"Brown café just behind Dam Square. Ajax on large projected screen upstairs."},
+   tip:{nl:"Gemengd publiek van locals en toeristen.",en:"Mixed crowd of locals and tourists."},
+   hours:"Ma–do 10:00–1:00 · Vr–za 10:00–2:00 · Zo 11:00–1:00",tags:[],sunny:false,ajaxCafe:true},
+];
+
+let lang='nl';
+const T={
+  nl:{sub:"Amsterdams authentieke bruine cafés",crawlBtn:"Kroegentocht",search:"Zoek op naam of buurt…",
+      fHistoric:"Historisch",fJenever:"Jenever",fTerrace:"Terras",fNight:"Nachtcafé",
+      fAjax:"Ajax",fMusic:"Muziek",fLocals:"Geen toeristen",fLoved:"♥ Lievelingen",
+      hours:"Openingstijden",hood:"Buurt",sun:"Terras in de zon",
+      noSun:"Geen zonnig terras",noTerrace:"Geen terras",
+      noRes:"Geen kroegen gevonden — pas filters aan",
+      crawlTitle:"Plan een kroegentocht",crawlDesc:"Kies een buurt en we stippelen de perfecte avond voor je uit.",
+      crawlFavTitle:"Kroegentocht langs lievelingen",crawlFavDesc:"Een avond langs jouw geliefde kroegen.",
+      crawlFavBtn:"♥ Kroegentocht lievelingen",crawlNoFav:"Hart eerst een paar kroegen om een lievelingstocht te plannen.",
+      crawlClose:"Sluiten",crawlAll:"Alle buurten",
+      times:["Eerste stop — 17:00","Tweede stop — 18:30","Derde stop — 20:00","Slotkroeg — 21:30"],
+      award:"Parool beste kroeg 2023",
+      feedbackBtn:"💬 Tip of correctie sturen",feedbackName:"Jouw naam",feedbackMsg:"Jouw bericht",feedbackSend:"Versturen",feedbackOk:"Bedankt! We nemen je tip mee.",
+      lovedTag:"♥ Lieveling"},
+  en:{sub:"Amsterdam's authentic brown cafés",crawlBtn:"Bar crawl",search:"Search by name or neighbourhood…",
+      fHistoric:"Historic",fJenever:"Jenever",fTerrace:"Terrace",fNight:"Night café",
+      fAjax:"Ajax",fMusic:"Music",fLocals:"Locals only",fLoved:"♥ Favourites",
+      hours:"Opening hours",hood:"Neighbourhood",sun:"Sunny terrace",
+      noSun:"No sunny terrace",noTerrace:"No terrace",
+      noRes:"No kroegen found — adjust filters",
+      crawlTitle:"Plan a bar crawl",crawlDesc:"Pick a neighbourhood and we'll build the perfect evening route.",
+      crawlFavTitle:"Favourites bar crawl",crawlFavDesc:"An evening through your hearted cafés.",
+      crawlFavBtn:"♥ Favourites crawl",crawlNoFav:"Heart a few cafés first to plan a favourites crawl.",
+      crawlClose:"Close",crawlAll:"All neighbourhoods",
+      times:["First stop — 5pm","Second stop — 6:30pm","Third stop — 8pm","Final stop — 9:30pm"],
+      award:"Parool best kroeg 2023",
+      feedbackBtn:"💬 Send a tip or correction",feedbackName:"Your name",feedbackMsg:"Your message",feedbackSend:"Send",feedbackOk:"Thanks! We'll take your tip on board.",
+      lovedTag:"♥ Favourite"},
+};
+
+function setLang(l){
+  lang=l;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.textContent===l.toUpperCase()));
+  applyLang();renderList();
+  if(selId)showDet(K.find(k=>k.id===selId));
+}
+function applyLang(){
+  const t=T[lang];
+  document.getElementById('hdr-sub').textContent=t.sub;
+  document.getElementById('crawl-btn').textContent=t.crawlBtn;
+  document.getElementById('search').placeholder=t.search;
+  document.getElementById('f-historic').textContent=t.fHistoric;
+  document.getElementById('f-jenever').textContent=t.fJenever;
+  document.getElementById('f-terrace').textContent=t.fTerrace;
+  document.getElementById('f-night').textContent=t.fNight;
+  document.getElementById('f-ajax').textContent=t.fAjax;
+  document.getElementById('f-music').textContent=t.fMusic;
+  document.getElementById('f-locals').textContent=t.fLocals;
+  document.getElementById('f-loved').textContent=t.fLoved;
+  buildHoodSelect();
+}
+
+const map=L.map('map',{center:[52.370,4.898],zoom:13});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+const markers={};const pinEls={};
+K.forEach(k=>{
+  const d=document.createElement('div');
+  d.className='kpin';
+  d.style.cssText='background:'+(k.award?'#6B1D5F':k.nightCafe?'#1A0A4E':k.ajaxCafe?'#6B0000':k.sunny?'#B86A08':'#4A2A08');
+  d.textContent=k.award?'🏆':k.nightCafe?'🌙':k.ajaxCafe?'⚽':k.sunny?'☀':'🍺';
+  const icon=L.divIcon({html:d.outerHTML,className:'',iconSize:[26,26],iconAnchor:[13,13]});
+  const m=L.marker([k.lat,k.lng],{icon}).addTo(map);
+  m.on('click',()=>selK(k.id));
+  markers[k.id]=m;
+});
+map.whenReady(()=>setTimeout(()=>{
+  K.forEach(k=>{const m=markers[k.id];if(m){const el=m.getElement();if(el)pinEls[k.id]=el.querySelector('.kpin');}});
+},300));
+
+let aF=new Set(),srch='',selId=null,loved=new Set(),searchTimer=null;
+const listNodes={};
+
+function tl(t){
+  return({nl:{jenever:'Jenever',terrace:'Terras',historic:'Historisch',night:'Nachtcafé',ajax:'Ajax',music:'Muziek','no-tourists':'Geen toeristen'},
+           en:{jenever:'Jenever',terrace:'Terrace',historic:'Historic',night:'Night café',ajax:'Ajax',music:'Music','no-tourists':'Locals only'}}[lang]||{})[t]||t;
+}
+
+function vis(k){
+  if(aF.has('loved')&&!loved.has(k.id))return false;
+  if(aF.size>0&&![...aF].every(f=>{
+    if(f==='loved')return loved.has(k.id);
+    if(f==='night')return k.nightCafe;
+    if(f==='ajax')return k.ajaxCafe;
+    if(f==='music')return k.musicCafe;
+    return k.tags.includes(f);
+  }))return false;
+  if(srch&&!k.name.toLowerCase().includes(srch)&&!k.hood.toLowerCase().includes(srch)&&!k.addr.toLowerCase().includes(srch))return false;
+  return true;
+}
+
+function upd(){
+  K.forEach(k=>{
+    const el=pinEls[k.id]||markers[k.id]?.getElement()?.querySelector('.kpin');
+    if(el){el.style.opacity=vis(k)?'1':'0.18';if(!pinEls[k.id])pinEls[k.id]=el;}
+  });
+}
+
+function renderTags(k){
+  const base=k.tags.filter(t=>t!=='no-tourists');
+  return base.map(t=>`<span class="tag ${t}">${tl(t)}</span>`).join('')+
+    (k.nightCafe?`<span class="tag night">🌙 ${tl('night')}</span>`:'')+
+    (k.ajaxCafe?`<span class="tag ajax">⚽ Ajax</span>`:'')+
+    (k.musicCafe?`<span class="tag music">🎵 ${tl('music')}</span>`:'')+
+    (k.award?`<span class="tag award">🏆 ${T[lang].award}</span>`:'')+
+    (k.tags.includes('no-tourists')?`<span class="tag no-tourists">${tl('no-tourists')}</span>`:'')+
+    (loved.has(k.id)?`<span class="tag loved">${T[lang].lovedTag}</span>`:'');
+}
+
+function renderList(){
+  const visible=K.filter(vis);
+  document.getElementById('cnt').textContent=visible.length+' kroegen';
+  const listEl=document.getElementById('list');
+  if(!visible.length){
+    Object.keys(listNodes).forEach(id=>{if(listNodes[id].parentNode)listNodes[id].parentNode.removeChild(listNodes[id]);delete listNodes[id];});
+    if(!listEl.querySelector('.no-res'))listEl.innerHTML=`<div class="no-res">${T[lang].noRes}</div>`;
+    upd();return;
+  }
+  const nr=listEl.querySelector('.no-res');if(nr)nr.remove();
+  const visIds=new Set(visible.map(k=>k.id));
+  Object.keys(listNodes).forEach(id=>{if(!visIds.has(parseInt(id))){if(listNodes[id].parentNode)listNodes[id].parentNode.removeChild(listNodes[id]);delete listNodes[id];}});
+  let refNode=null;
+  for(let i=visible.length-1;i>=0;i--){
+    const k=visible[i];const isSel=selId===k.id;const isLoved=loved.has(k.id);
+    if(listNodes[k.id]){
+      const node=listNodes[k.id];
+      node.classList.toggle('sel',isSel);
+      const heart=node.querySelector('.ki-heart');
+      if(heart){heart.classList.toggle('loved',isLoved);heart.textContent=isLoved?'♥':'♡';}
+      // update loved tag in ki-tags
+      const tagsEl=node.querySelector('.ki-tags');
+      if(tagsEl)tagsEl.innerHTML=renderTags(k);
+      if(node.nextSibling!==refNode)listEl.insertBefore(node,refNode);
+    }else{
+      const node=document.createElement('div');
+      node.className='ki'+(isSel?' sel':'');node.dataset.id=k.id;
+      node.innerHTML=`<div class="ki-top"><span class="ki-name">${k.name}</span><span class="ki-right"><span class="ki-est">est. ${k.year}</span><span class="ki-heart${isLoved?' loved':''}">${isLoved?'♥':'♡'}</span></span></div><div class="ki-hood">${k.hood} · ${k.addr}</div><div class="ki-vibe">${k.vibe[lang]}</div><div class="ki-tags">${renderTags(k)}</div>`;
+      node.addEventListener('click',()=>selK(k.id));
+      node.querySelector('.ki-heart').addEventListener('click',e=>{e.stopPropagation();toggleLove(k.id);});
+      listNodes[k.id]=node;listEl.insertBefore(node,refNode);
+    }
+    refNode=listNodes[k.id];
+  }
+  upd();
+}
+
+function showDet(k){
+  const t=T[lang];
+  document.getElementById('det-name').textContent=k.name;
+  document.getElementById('det-meta').textContent=`${k.hood} · ${k.addr} · est. ${k.year}`;
+  document.getElementById('det-tags').innerHTML=renderTags(k);
+  // Build feedback section with data-id attribute to avoid apostrophe issues
+  document.getElementById('det-body').innerHTML=`
+    <div class="db wide"><div class="dlbl">Over deze kroeg</div><div class="dval">${k.vibe[lang]}</div></div>
+    <div class="db wide"><div class="dlbl">Sfeer / meer feitjes</div><div class="dval">${k.tip[lang]}</div></div>
+    <div class="db wide"><div class="dlbl">${t.hours}</div><div class="dval">${k.hours}</div></div>
+    <div class="db"><div class="dlbl">${t.hood}</div><div class="dval">${k.hood}</div></div>
+    <div class="db"><div class="dlbl">${t.sun}</div><div class="dval">${k.sunny?'☀ '+k.sunHours:k.tags.includes('terrace')?t.noSun:t.noTerrace}</div></div>
+    <div class="db wide" id="fb-wrap-${k.id}">
+      <button class="fb-btn" data-cafe-id="${k.id}">${t.feedbackBtn}</button>
+      <div class="fb-form">
+        <input type="text" placeholder="${t.feedbackName}" id="fb-name-${k.id}">
+        <textarea placeholder="${t.feedbackMsg}" id="fb-msg-${k.id}"></textarea>
+        <button class="fb-send" data-cafe-id="${k.id}">${t.feedbackSend}</button>
+        <div class="fb-ok" id="fb-ok-${k.id}">${t.feedbackOk}</div>
+      </div>
+    </div>`;
+  // Attach events via data attributes — no inline onclick, no apostrophe issues
+  document.querySelector(`#fb-wrap-${k.id} .fb-btn`).addEventListener('click',function(){
+    const form=this.nextElementSibling;
+    form.classList.toggle('open');
+    this.style.display=form.classList.contains('open')?'none':'block';
+  });
+  document.querySelector(`#fb-wrap-${k.id} .fb-send`).addEventListener('click',()=>sendFeedback(k.id,k.name));
+  document.getElementById('det').classList.add('open');
+}
+
+async function sendFeedback(id,name){
+  const nameVal=document.getElementById('fb-name-'+id).value.trim();
+  const msgVal=document.getElementById('fb-msg-'+id).value.trim();
+  if(!msgVal)return;
+  const okEl=document.getElementById('fb-ok-'+id);
+  try{
+    await fetch(`https://formspree.io/f/${FORMSPREE_ID}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({name:nameVal,message:msgVal,cafe:name})
+    });
+    okEl.style.display='block';
+    document.getElementById('fb-name-'+id).value='';
+    document.getElementById('fb-msg-'+id).value='';
+  }catch(e){okEl.textContent='Er ging iets mis. Probeer het opnieuw.';okEl.style.display='block';}
+}
+
+function toggleLove(id){
+  loved.has(id)?loved.delete(id):loved.add(id);
+  const node=listNodes[id];
+  if(node){
+    const heart=node.querySelector('.ki-heart');
+    if(heart){heart.classList.toggle('loved',loved.has(id));heart.textContent=loved.has(id)?'♥':'♡';}
+    const tagsEl=node.querySelector('.ki-tags');
+    const k=K.find(x=>x.id===id);
+    if(tagsEl&&k)tagsEl.innerHTML=renderTags(k);
+  }
+  // refresh detail panel tags if open
+  if(selId===id){
+    const k=K.find(x=>x.id===id);
+    if(k)document.getElementById('det-tags').innerHTML=renderTags(k);
+  }
+  // if loved filter is active, re-render list
+  if(aF.has('loved'))renderList();
+}
+
+function scrollToKroeg(id){const node=listNodes[id];if(node)node.scrollIntoView({block:'nearest',behavior:'smooth'});}
+
+function selK(id){
+  const prev=selId;selId=selId===id?null:id;
+  if(prev&&listNodes[prev])listNodes[prev].classList.remove('sel');
+  if(selId&&listNodes[selId])listNodes[selId].classList.add('sel');
+  Object.entries(markers).forEach(([mid,m])=>{
+    const el=pinEls[parseInt(mid)]||m.getElement()?.querySelector('.kpin');
+    if(el)el.classList.toggle('sel',parseInt(mid)===selId);
+  });
+  if(!selId){closeDet();return;}
+  const k=K.find(x=>x.id===id);
+  showDet(k);
+  // Pan so pin appears in the visible centre above the detail panel
+  requestAnimationFrame(()=>{
+    const detH=document.getElementById('det').offsetHeight;
+    const pt=map.project([k.lat,k.lng],map.getZoom());
+    pt.y+=detH/2;
+    map.panTo(map.unproject(pt,map.getZoom()),{animate:true,duration:0.4});
+  });
+  setTimeout(()=>scrollToKroeg(id),50);
+}
+
+function closeDet(){
+  selId=null;document.getElementById('det').classList.remove('open');
+  Object.values(listNodes).forEach(n=>n.classList.remove('sel'));
+  Object.values(pinEls).forEach(p=>{if(p)p.classList.remove('sel');});
+}
+
+function doSearch(v){
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>{srch=v.toLowerCase().trim();selId=null;closeDet();renderList();},120);
+}
+
+document.querySelectorAll('.fb').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const f=btn.dataset.f;
+    if(aF.has(f)){aF.delete(f);btn.classList.remove('active');}
+    else{aF.add(f);btn.classList.add('active');}
+    selId=null;closeDet();renderList();
+  });
+});
+
+// ── CRAWL ──
+const hoods=['Jordaan','Centrum','De Pijp','West','Oost','Zuid','Noord'];
+
+function buildHoodSelect(){
+  const sel=document.getElementById('c-hood');const cur=sel.value;
+  sel.innerHTML=`<option value="">${T[lang].crawlAll}</option>`+hoods.map(h=>`<option value="${h}"${cur===h?' selected':''}>${h}</option>`).join('');
+  buildCrawl(sel.value);
+}
+
+function buildCrawl(hood){
+  const t=T[lang];
+  const lovedList=[...loved];
+  // Show favourites crawl button if any loved
+  const favBtn=lovedList.length>0
+    ?`<button class="hdr-btn" style="width:100%;margin-bottom:10px;font-size:12px" onclick="buildFavCrawl()">${t.crawlFavBtn}</button>`
+    :'';
+  // Regular crawl
+  let pool=K.filter(k=>!hood||k.hood===hood);
+  pool=[...pool].sort(()=>Math.random()-0.5).slice(0,4);
+  const times=t.times;
+  document.getElementById('cstops').innerHTML=favBtn+pool.map((k,i)=>`
+    <div class="cstop">
+      <div class="cnum">${i+1}</div>
+      <div class="cinfo">
+        <div class="cname">${k.name}</div>
+        <div class="cdesc">${k.addr} · est. ${k.year} · ${times[i]}</div>
+        <div class="cdesc" style="color:var(--text3);margin-top:1px;font-size:10px">${k.hours.split('·')[0].trim()}</div>
+      </div>
+    </div>${i<pool.length-1?'<hr class="chr">':''}`).join('');
+}
+
+function buildFavCrawl(){
+  const t=T[lang];
+  const lovedList=[...loved];
+  if(!lovedList.length){
+    document.getElementById('cstops').innerHTML=`<p style="font-size:12px;color:var(--text3);font-family:sans-serif">${t.crawlNoFav}</p>`;
+    return;
+  }
+  document.getElementById('crawl-title').textContent=t.crawlFavTitle;
+  document.getElementById('crawl-desc').textContent=t.crawlFavDesc;
+  const pool=lovedList.map(id=>K.find(k=>k.id===id)).filter(Boolean).sort(()=>Math.random()-0.5).slice(0,4);
+  const times=t.times;
+  document.getElementById('cstops').innerHTML=pool.map((k,i)=>`
+    <div class="cstop">
+      <div class="cnum loved-num">♥</div>
+      <div class="cinfo">
+        <div class="cname">${k.name}</div>
+        <div class="cdesc">${k.addr} · est. ${k.year} · ${times[i]}</div>
+        <div class="cdesc" style="color:var(--text3);margin-top:1px;font-size:10px">${k.hours.split('·')[0].trim()}</div>
+      </div>
+    </div>${i<pool.length-1?'<hr class="chr">':''}`).join('');
+}
+
+function openCrawl(){
+  document.getElementById('crawl-title').textContent=T[lang].crawlTitle;
+  document.getElementById('crawl-desc').textContent=T[lang].crawlDesc;
+  document.getElementById('crawl-modal').classList.add('open');
+  buildHoodSelect();
+}
+function closeCrawl(){document.getElementById('crawl-modal').classList.remove('open');}
+document.getElementById('c-hood').addEventListener('change',function(){buildCrawl(this.value);});
+document.getElementById('crawl-modal').addEventListener('click',function(e){if(e.target===this)closeCrawl();});
+
+applyLang();renderList();
+</script>
+</body>
+</html>
